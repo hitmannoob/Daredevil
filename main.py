@@ -180,8 +180,6 @@ Avoid extra or descriptive details — focus only on navigation-relevant informa
                     description = await self.analyze_frame(frame)
                     
                     if description:
-                        print(f"\n📷 Scene Description:\n{description}\n")
-                        print("-" * 50)
                         await self.text_to_speech(description)
                     
                     self.last_analysis_time = current_time
