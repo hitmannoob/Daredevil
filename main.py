@@ -1,4 +1,4 @@
-# vision_analyzer_openai.py
+
 import cv2
 import base64
 import time
@@ -18,7 +18,6 @@ class AsyncEdgeTTS:
         self.voice = voice
         self.temp_file = "temp_tts_audio.mp3"
 
-    # --- Helper function for the blocking audio playback via afplay ---
     def _play_afplay_blocking(self, filepath):
         """This function runs in a separate thread and blocks until playback is done using macOS's afplay."""
         try:
@@ -37,15 +36,13 @@ class AsyncEdgeTTS:
         communicate = edge_tts.Communicate(text, self.voice)
         
         try:
-            # 1. Save the full audio stream to a temporary file
+
             await communicate.save(self.temp_file)
             
-            # 2. Play the audio file by offloading the blocking 'afplay' call 
-            #    to a separate thread using the correct async pattern.
             await asyncio.to_thread(self._play_afplay_blocking, self.temp_file)
             
         except Exception as e:
-            # Catch errors from the saving process
+
             print(f"Error during TTS saving or thread creation: {e}")
             await asyncio.sleep(len(text) / 30)
         finally:
@@ -73,16 +70,16 @@ class OpenAIVisionAnalyzer:
         
     def encode_frame_to_base64(self, frame):
         """Convert OpenCV frame to base64 string for API"""
-        # Convert BGR (OpenCV) to RGB (PIL)
+
         rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         pil_image = Image.fromarray(rgb_frame)
         
-        # Resize if too large (to save API costs and improve speed)
+
         max_dimension = 512
         if pil_image.width > max_dimension or pil_image.height > max_dimension:
             pil_image.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
         
-        # Convert to base64
+
         buffer = BytesIO()
         pil_image.save(buffer, format="JPEG", quality=85)
         buffer.seek(0)
@@ -98,12 +95,11 @@ class OpenAIVisionAnalyzer:
         self.is_analyzing = True
         
         try:
-            # Encode frame
+
             base64_image = self.encode_frame_to_base64(frame)
-            
-            # Create the message for GPT-4V
+
             response = await self.client.chat.completions.create(
-                model="gpt-4o-mini",  # or "gpt-4-vision-preview" for better quality
+                model="gpt-4o-mini",  
                 messages=[
                     {
                         "role": "user",
@@ -131,7 +127,7 @@ Avoid extra or descriptive details — focus only on navigation-relevant informa
                                 "type": "image_url",
                                 "image_url": {
                                     "url": f"data:image/jpeg;base64,{base64_image}",
-                                    "detail": "low"  # Use "high" for more detailed analysis
+                                    "detail": "low"  
                                 }
                             }
                         ]
@@ -174,13 +170,12 @@ Avoid extra or descriptive details — focus only on navigation-relevant informa
                     print("Failed to capture frame")
                     continue
                 
-                # Display the frame
                 cv2.imshow('Webcam Feed', frame)
                 
-                # Check if it's time to analyze
+
                 current_time = time.time()
                 if current_time - self.last_analysis_time >= self.analysis_interval:
-                    # Analyze frame
+
                     print(f"\nAnalyzing frame at {current_time:.2f}...")
                     description = await self.analyze_frame(frame)
                     
@@ -191,12 +186,12 @@ Avoid extra or descriptive details — focus only on navigation-relevant informa
                     
                     self.last_analysis_time = current_time
                 
-                # Check for quit command
+
                 if cv2.waitKey(1) & 0xFF == ord('q'):
                     break
                     
-                # Small delay to prevent CPU overload
-                await asyncio.sleep(0.03)  # ~30 FPS
+
+                await asyncio.sleep(0.06)  # ~30 FPS
                 
         finally:
             cap.release()
